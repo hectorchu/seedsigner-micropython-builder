@@ -5,9 +5,12 @@
 
 #include "py/obj.h"
 #include "py/runtime.h"
+#include "py/mphal.h"
+#include "lvgl.h"
 
 #include "display_manager.h"
 #include "seedsigner.h"
+#include "input_profile.h"
 
 #define SEEDSIGNER_RESULT_QUEUE_CAP 16
 #define SEEDSIGNER_RESULT_LABEL_MAX 96
@@ -222,6 +225,53 @@ static mp_obj_t mp_seedsigner_lvgl_clear_result_queue(void) {
 }
 static MP_DEFINE_CONST_FUN_OBJ_0(seedsigner_lvgl_clear_result_queue_obj, mp_seedsigner_lvgl_clear_result_queue);
 
+static uint32_t last_key = 0;
+static lv_indev_state_t last_state = LV_INDEV_STATE_REL;
+
+static void indev_read(lv_indev_t *indev, lv_indev_data_t *data)
+{
+    data->key = last_key;
+    data->state = last_state;
+    last_state = LV_INDEV_STATE_REL;
+}
+
+static mp_obj_t mp_seedsigner_lvgl_register_indev(void) {
+    lv_indev_t *indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(indev, indev_read);
+    input_profile_set_mode(INPUT_MODE_HARDWARE);
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(seedsigner_lvgl_register_indev_obj, mp_seedsigner_lvgl_register_indev);
+
+static mp_obj_t mp_seedsigner_lvgl_read_indev(void) {
+    switch (mp_hal_stdin_rx_chr()) {
+        case '\r':
+            last_key = LV_KEY_ENTER;
+            break;
+        case 0x1b:
+            switch (mp_hal_stdin_rx_chr()) {
+                case '[':
+                    switch (mp_hal_stdin_rx_chr()) {
+                        case 'A': last_key = LV_KEY_UP; break;
+                        case 'B': last_key = LV_KEY_DOWN; break;
+                        case 'C': last_key = LV_KEY_RIGHT; break;
+                        case 'D': last_key = LV_KEY_LEFT; break;
+                        default: return mp_const_none;
+                    }
+                    break;
+                default:
+                    return mp_const_none;
+            }
+            break;
+        default:
+            return mp_const_none;
+    }
+    last_state = LV_INDEV_STATE_PR;
+    return mp_const_none;
+}
+static MP_DEFINE_CONST_FUN_OBJ_0(seedsigner_lvgl_read_indev_obj, mp_seedsigner_lvgl_read_indev);
+
 static const mp_rom_map_elem_t seedsigner_lvgl_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_seedsigner_lvgl) },
     { MP_ROM_QSTR(MP_QSTR_demo_screen), MP_ROM_PTR(&seedsigner_lvgl_demo_screen_obj) },
@@ -230,6 +280,8 @@ static const mp_rom_map_elem_t seedsigner_lvgl_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR_screensaver_screen), MP_ROM_PTR(&seedsigner_lvgl_screensaver_screen_obj) },
     { MP_ROM_QSTR(MP_QSTR_poll_for_result), MP_ROM_PTR(&seedsigner_lvgl_poll_for_result_obj) },
     { MP_ROM_QSTR(MP_QSTR_clear_result_queue), MP_ROM_PTR(&seedsigner_lvgl_clear_result_queue_obj) },
+    { MP_ROM_QSTR(MP_QSTR_register_indev), MP_ROM_PTR(&seedsigner_lvgl_register_indev_obj) },
+    { MP_ROM_QSTR(MP_QSTR_read_indev), MP_ROM_PTR(&seedsigner_lvgl_read_indev_obj) },
 };
 static MP_DEFINE_CONST_DICT(seedsigner_lvgl_module_globals, seedsigner_lvgl_module_globals_table);
 
