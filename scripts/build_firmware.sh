@@ -53,10 +53,9 @@ source "$IDF_PATH/export.sh"
 idf.py --version >/dev/null 2>&1 || { echo "ERROR: idf.py not runnable (GHCR base image ESP-IDF toolchain missing/broken)"; exit 1; }
 
 PORTS_ESP32_DIR="$ROOT_DIR/ports/esp32"
-PORTS_ESP32_INCLUDE_DIR="$PORTS_ESP32_DIR/board_common/include"
 USER_C_MODULES_FILE="$ROOT_DIR/usercmodule.cmake"
 MICROPY_CMAKE_ARGS="${CMAKE_ARGS:-} -DUSER_C_MODULES=$USER_C_MODULES_FILE"
-MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DMICROPY_EXTRA_COMPONENT_DIRS=${PORTS_ESP32_DIR}\;${CMODS_DIR}/components\;${PORTS_ESP32_DIR}/board_common/components"
+MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DMICROPY_EXTRA_COMPONENT_DIRS=${PORTS_ESP32_DIR}\;${CMODS_DIR}/components\;${PORTS_ESP32_DIR}/board_common/components -DCMAKE_C_FLAGS=\"-I$PORTS_ESP32_DIR/board_common/include -include $PORTS_ESP32_DIR/board_common/include/defs.h\""
 MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DSEEDSIGNER_C_MODULES_DIR=$CMODS_DIR"
 
 # board_common board config: maps MicroPython board name to board_common board dir.
@@ -86,8 +85,6 @@ if [ -z "${SEEDSIGNER_DISPLAY_HEIGHT:-}" ]; then
   esac
 fi
 MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DSEEDSIGNER_DISPLAY_HEIGHT=$SEEDSIGNER_DISPLAY_HEIGHT"
-MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DCMAKE_C_FLAGS=-I$PORTS_ESP32_INCLUDE_DIR"
-MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DCMAKE_CXX_FLAGS=-I$PORTS_ESP32_INCLUDE_DIR"
 
 {
   make -C "$MP_DIR/mpy-cross" USER_C_MODULES= -j"$(nproc)"
@@ -97,9 +94,7 @@ MICROPY_CMAKE_ARGS="$MICROPY_CMAKE_ARGS -DCMAKE_CXX_FLAGS=-I$PORTS_ESP32_INCLUDE
     USER_C_MODULES="$USER_C_MODULES_FILE" \
     CMAKE_ARGS="$MICROPY_CMAKE_ARGS" \
     MICROPY_MPYCROSS="$MP_DIR/mpy-cross/build/mpy-cross" \
-    CFLAGS_EXTRA="-I$PORTS_ESP32_INCLUDE_DIR -include $PORTS_ESP32_INCLUDE_DIR/defs.h" \
-    DEVICE="qemu --graphics" \
-    IDF_CCACHE_ENABLE=1 monitor
+    IDF_CCACHE_ENABLE=1 ${TARGET:-all}
 
   if ! grep -Rqs "usercmodule.cmake" "$BUILD_DIR"/CMakeCache.txt "$BUILD_DIR"/esp-idf/main/CMakeFiles 2>/dev/null; then
     echo "ERROR: USER_C_MODULES not detected in build metadata (expected $USER_C_MODULES_FILE)."
