@@ -7,3 +7,6 @@
 [submodule "ports/esp32/board_common"]
 	path = ports/esp32/board_common
 	url = https://github.com/hectorchu/esp-board-common.git
+[submodule "deps/seedsigner"]
+	path = deps/seedsigner
+	url = https://github.com/ltcmweb/seedsigner.git
