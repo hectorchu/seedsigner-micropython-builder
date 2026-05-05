@@ -10,3 +10,6 @@
 [submodule "deps/seedsigner"]
 	path = deps/seedsigner
 	url = https://github.com/ltcmweb/seedsigner.git
+[submodule "deps/secp256k1"]
+	path = deps/secp256k1
+	url = https://github.com/ltcmweb/secp256k1.git

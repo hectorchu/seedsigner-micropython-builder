@@ -3,6 +3,7 @@ add_library(usermod_dm INTERFACE)
 target_sources(usermod_dm INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/moddisplay_manager_bindings.c
     ${CMAKE_CURRENT_LIST_DIR}/modseedsigner_bindings.c
+    ${CMAKE_CURRENT_LIST_DIR}/modsecp256k1_bindings.c
     ${CMAKE_CURRENT_LIST_DIR}/modmweb_bindings.c
     ${CMAKE_CURRENT_LIST_DIR}/modlvgl_bindings.c
     ${CMAKE_CURRENT_LIST_DIR}/modlvglcanvas_bindings.c
@@ -18,7 +19,12 @@ target_include_directories(usermod_dm INTERFACE
     ${CMAKE_CURRENT_LIST_DIR}/../ports/esp32/display_manager
     ${CMAKE_CURRENT_LIST_DIR}/../ports/esp32/board_common/src
     ${CMAKE_CURRENT_LIST_DIR}/../deps/seedsigner/src/lvgl
+    ${CMAKE_CURRENT_LIST_DIR}/../deps/secp256k1
     ${SEEDSIGNER_C_MODULES_DIR}/components/seedsigner
+)
+
+target_compile_options(usermod_dm INTERFACE
+    -mtext-section-literals
 )
 
 # Link bindings against ESP-IDF component libs instead of compiling component C++
